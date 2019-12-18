@@ -16,11 +16,14 @@ import javax.swing.JPanel;
 public class GraphicsDisplay extends JPanel {
 
     private Double[][] graphicsData;
+    private ArrayList<Double> regions;
+    private ArrayList<Double> squares;
 
     private static final double TURN_ANGLE = Math.PI/2;
 
     private boolean showAxis = true;
     private boolean showMarkers = true;
+    private boolean showRegions = false;
     private byte turnCount = 0;
 
     private double minX;
@@ -31,10 +34,6 @@ public class GraphicsDisplay extends JPanel {
     private double scale = 1;
 
     private BasicStroke graphicsStroke;
-    //длину штрихов и промежутков между штрихами Ч массив dash;
-    // элементы массива с четными индексами задают длину штриха в пикселах,
-    // элементы с нечетными индексами Ч длину промежутка;
-    // массив перебираетс€ циклически;
     float[] graphicsDash = new float[]{12, 4, 4, 4, 4, 4, 8, 4, 8, 4};
     private BasicStroke axisStroke;
     private BasicStroke markerStroke;
@@ -56,16 +55,24 @@ public class GraphicsDisplay extends JPanel {
 
     public void showGraphics(Double[][] graphicsData) {
         this.graphicsData = graphicsData;
+        regions = null;
+        squares = null;
         repaint();
     }
 
     public void setShowAxis(boolean showAxis) {
         this.showAxis = showAxis;
         repaint();
+
     }
 
     public void setShowMarkers(boolean showMarkers) {
         this.showMarkers = showMarkers;
+        repaint();
+    }
+
+    public void setShowRegions(boolean showRegions) {
+        this.showRegions = showRegions;
         repaint();
     }
 
@@ -108,6 +115,10 @@ public class GraphicsDisplay extends JPanel {
         if (showAxis) paintAxis(canvas);
         paintGraphics(canvas);
         if (showMarkers) paintMarkers(canvas);
+        if (showRegions){
+            if(regions == null) findRegions();
+            paintRegions(canvas);
+        }
         canvas.setFont(oldFont);
         canvas.setPaint(oldPaint);
         canvas.setColor(oldColor);
@@ -172,6 +183,95 @@ public class GraphicsDisplay extends JPanel {
             canvas.fill(line2);
             canvas.fill(line3);
             canvas.fill(line4);
+        }
+    }
+
+    protected void paintRegions(Graphics2D canvas) {
+        canvas.setStroke(markerStroke);
+        canvas.setPaint(Color.PINK);
+        canvas.setColor(Color.PINK);
+        for (int itReg = 0; itReg < regions.size() - 1; itReg += 1) {
+            GeneralPath region = new GeneralPath();
+            Point2D.Double point = xyToPoint(regions.get(itReg), 0);
+            region.moveTo(point.getX(), point.getY());
+
+            int firstIndex = 0;
+            for(; firstIndex < graphicsData.length - 1 && regions.get(itReg) > graphicsData[firstIndex][0]; firstIndex++);
+
+            point = xyToPoint(graphicsData[firstIndex][0], graphicsData[firstIndex][1]);
+            region.lineTo(point.getX(), point.getY());
+
+            for (int i = firstIndex + 1; i < graphicsData.length && graphicsData[i][0] <= regions.get(itReg + 1); i++) {
+
+                point = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
+                region.lineTo(point.getX(), point.getY());
+            }
+            point = xyToPoint(regions.get(itReg + 1), 0);
+            region.lineTo(point.getX(), point.getY());
+            region.closePath();
+            canvas.draw(region);
+            canvas.fill(region);
+
+            Double maxHeight = 0.0;
+            for (Double[] p : graphicsData){
+                if (p[0] < regions.get(itReg)) continue;
+                if (p[0] > regions.get(itReg + 1)) break;
+                if(Math.abs(maxHeight) < Math.abs(p[1])) maxHeight = p[1];
+            }
+            maxHeight = xyToPoint(0, maxHeight).getY();
+            Font regFont = new Font("TimesRoman", Font.BOLD, 13);
+            canvas.setFont(regFont);
+            Point2D.Double labelPos = xyToPoint((regions.get(itReg + 1) + regions.get(itReg))/2, 0);
+            canvas.setPaint(Color.BLACK);
+            Rectangle2D bounds = regFont.getStringBounds(String.format("%.2f", squares.get(itReg)), canvas.getFontRenderContext());
+            canvas.drawString(String.format("%.2f", squares.get(itReg)), (float) (labelPos.getX() - bounds.getWidth()),
+                    (float)  ((labelPos.getY() + maxHeight + Math.signum(maxHeight) * bounds.getHeight())) / 2 );
+            canvas.setPaint(Color.PINK);
+            canvas.setColor(Color.PINK);
+        }
+
+    }
+
+
+    protected void findRegions() {
+        if (regions == null) {
+            regions = new ArrayList<>();
+            if (graphicsData[0][1] == 0) regions.add(graphicsData[0][0]);
+            for (int i = 1; i < graphicsData.length; i++) {
+                if (graphicsData[i][1] == 0) {
+                    regions.add(graphicsData[i][0]);
+                } else if (graphicsData[i - 1][1] * graphicsData[i][1] < 0) {
+                    Double x = (graphicsData[i][0] * graphicsData[i - 1][1] - graphicsData[i - 1][0] * graphicsData[i][1])
+                            / (graphicsData[i - 1][1] - graphicsData[i][1]);
+                    regions.add(x);
+                }
+            }
+        }
+        calcSquares();
+    }
+
+    protected void calcSquares(){
+        if (squares == null) {
+            int calcSquareFirst = 0;
+            squares = new ArrayList<>();
+            Double sq;
+            for (int j = 0; j < regions.size() - 1; j++){
+                sq = 0.0;
+                for (; calcSquareFirst < graphicsData.length && graphicsData[calcSquareFirst][0] < regions.get(j); calcSquareFirst++);
+                if (graphicsData[calcSquareFirst][1] != 0) {
+                    sq += graphicsData[calcSquareFirst][1] * (graphicsData[calcSquareFirst][0] - regions.get(j));
+                }
+                int i;
+                for (i = calcSquareFirst + 1; i < graphicsData.length - 1 && graphicsData[i][0] <= regions.get(j + 1); i++) {
+                    sq += (graphicsData[i][1] + graphicsData[i - 1][1]) * (graphicsData[i][0] - graphicsData[i - 1][0]);
+                }
+                i--;
+                if (graphicsData[i][1] != 0) {
+                    sq += graphicsData[i][1] * (regions.get(j + 1) - graphicsData[i][0]);
+                }
+                squares.add(Math.abs(sq / 2));
+            }
+
         }
     }
 

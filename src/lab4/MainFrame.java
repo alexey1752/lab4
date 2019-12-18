@@ -17,6 +17,7 @@ public class MainFrame extends JFrame {
     JMenu graphicsMenu;
     private JCheckBoxMenuItem showAxisMenuItem;
     private JCheckBoxMenuItem showMarkersMenuItem;
+    private JCheckBoxMenuItem showRegionsMenuItem;
     Action rotateLeftGraphicsAction;
     Action rotateRightGraphicsAction;
     private GraphicsDisplay display = new GraphicsDisplay();
@@ -64,6 +65,17 @@ public class MainFrame extends JFrame {
 
         graphicsMenu.addMenuListener(new GraphicsMenuListener());
         getContentPane().add(display, BorderLayout.CENTER);
+
+
+        Action showRegionsAction = new AbstractAction("Показывать замкнутые области пересечения графика с Ox") {
+            public void actionPerformed(ActionEvent event)
+            {
+                display.setShowRegions(showRegionsMenuItem.isSelected());
+            }
+        };
+        showRegionsMenuItem = new JCheckBoxMenuItem(showRegionsAction);
+        showRegionsMenuItem.setSelected(false);
+        graphicsMenu.add(showRegionsMenuItem);
 
         rotateLeftGraphicsAction = new AbstractAction("Повернуть влево на 90°") {
             public void actionPerformed(ActionEvent event) {
