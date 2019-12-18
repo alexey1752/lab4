@@ -16,6 +16,7 @@ public class MainFrame extends JFrame {
     private JFileChooser fileChooser = new JFileChooser();
     JMenu graphicsMenu;
     private JCheckBoxMenuItem showAxisMenuItem;
+    private JCheckBoxMenuItem showMarkersMenuItem;
     Action rotateLeftGraphicsAction;
     Action rotateRightGraphicsAction;
     private GraphicsDisplay display = new GraphicsDisplay();
@@ -50,6 +51,16 @@ public class MainFrame extends JFrame {
         showAxisMenuItem = new JCheckBoxMenuItem(showAxisAction);
         graphicsMenu.add(showAxisMenuItem);
         showAxisMenuItem.setSelected(true);
+
+
+        Action showMarkersAction = new AbstractAction("Показывать маркеры точек") {
+            public void actionPerformed(ActionEvent event) {
+                display.setShowMarkers(showMarkersMenuItem.isSelected());
+            }
+        };
+        showMarkersMenuItem = new JCheckBoxMenuItem(showMarkersAction);
+        graphicsMenu.add(showMarkersMenuItem);
+        showMarkersMenuItem.setSelected(true);
 
         graphicsMenu.addMenuListener(new GraphicsMenuListener());
         getContentPane().add(display, BorderLayout.CENTER);

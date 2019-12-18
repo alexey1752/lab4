@@ -20,6 +20,7 @@ public class GraphicsDisplay extends JPanel {
     private static final double TURN_ANGLE = Math.PI/2;
 
     private boolean showAxis = true;
+    private boolean showMarkers = true;
     private byte turnCount = 0;
 
     private double minX;
@@ -63,6 +64,11 @@ public class GraphicsDisplay extends JPanel {
         repaint();
     }
 
+    public void setShowMarkers(boolean showMarkers) {
+        this.showMarkers = showMarkers;
+        repaint();
+    }
+
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (graphicsData == null || graphicsData.length == 0) return;
@@ -101,6 +107,7 @@ public class GraphicsDisplay extends JPanel {
         Font oldFont = canvas.getFont();
         if (showAxis) paintAxis(canvas);
         paintGraphics(canvas);
+        if (showMarkers) paintMarkers(canvas);
         canvas.setFont(oldFont);
         canvas.setPaint(oldPaint);
         canvas.setColor(oldColor);
@@ -137,6 +144,35 @@ public class GraphicsDisplay extends JPanel {
             if (str.charAt(i - 1) >= str.charAt(i)) return false;
         }
         return true;
+    }
+
+    protected void paintMarkers(Graphics2D canvas) {
+        canvas.setStroke(markerStroke);
+        for (Double[] point : graphicsData) {
+            canvas.setPaint(Color.BLACK);
+            canvas.setColor(Color.BLACK);
+
+            Point2D.Double center = xyToPoint(point[0], point[1]);
+            Line2D.Double line1 = new Line2D.Double(shiftPoint(center, -5, 0), shiftPoint(center, 5, 0));
+            Line2D.Double line2 = new Line2D.Double(shiftPoint(center, 0, -5), shiftPoint(center, 0, 5));
+            Line2D.Double line3 = new Line2D.Double(shiftPoint(center, -5, -5), shiftPoint(center, 5, 5));
+            Line2D.Double line4 = new Line2D.Double(shiftPoint(center, -5, 5), shiftPoint(center, 5, -5));
+
+            if (checkPoint(point[1])) {
+                canvas.setPaint(Color.GREEN);
+                canvas.setColor(Color.GREEN);
+            }
+
+            canvas.draw(line1);
+            canvas.draw(line2);
+            canvas.draw(line3);
+            canvas.draw(line4);
+
+            canvas.fill(line1);
+            canvas.fill(line2);
+            canvas.fill(line3);
+            canvas.fill(line4);
+        }
     }
 
     protected void paintAxis(Graphics2D canvas) {
